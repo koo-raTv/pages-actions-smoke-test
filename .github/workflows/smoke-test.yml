@@ -1,0 +1,40 @@
+name: Independent Actions and Pages check
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: independent-pages-check
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify the diagnostic artifact
+        run: |
+          node --version
+          node -e "const fs = require('node:fs'); const html = fs.readFileSync('public/index.html', 'utf8'); if (!html.includes('PAGES_ACTIONS_SMOKE_TEST_OK_20261101')) process.exit(1); console.log('Independent Node and artifact check passed');"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - uses: actions/deploy-pages@v4
+        id: deployment
